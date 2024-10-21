@@ -1,0 +1,60 @@
+ +06:00, +07:00      |
+        |                        +---------+----------------------------------------+
+        |                        | ZZ      | -0700, -0600 ... +0600, +0700          |
+        |                        +---------+----------------------------------------+
+        |                        | zz      | EST CST ... MST PST                    |
+        +------------------------+---------+----------------------------------------+
+        | Seconds timestamp      | X       | 1381685817, 1234567890.123             |
+        +------------------------+---------+----------------------------------------+
+        | Microseconds timestamp | x       | 1234567890123                          |
+        +------------------------+---------+----------------------------------------+
+
+        .. _file:
+
+        .. rubric:: The file sinks
+
+        If the sink is a |str| or a |Path|, the corresponding file will be opened for writing logs.
+        The path can also contain a special ``"{time}"`` field that will be formatted with the
+        current date at file creation. The file is closed at sink stop, i.e. when the application
+        ends or the handler is removed.
+
+        The ``rotation`` check is made before logging each message. If there is already an existing
+        file with the same name that the file to be created, then the existing file is renamed by
+        appending the date to its basename to prevent file overwriting. This parameter accepts:
+
+        - an |int| which corresponds to the maximum file size in bytes before that the current
+          logged file is closed and a new one started over.
+        - a |timedelta| which indicates the frequency of each new rotation.
+        - a |time| which specifies the hour when the daily rotation should occur.
+        - a |str| for human-friendly parametrization of one of the previously enumerated types.
+          Examples: ``"100 MB"``, ``"0.5 GB"``, ``"1 month 2 weeks"``, ``"4 days"``, ``"10h"``,
+          ``"monthly"``, ``"18:00"``, ``"sunday"``, ``"w0"``, ``"monday at 12:00"``, ...
+        - a |callable|_ which will be invoked before logging. It should accept two arguments: the
+          logged message and the file object, and it should return ``True`` if the rotation should
+          happen now, ``False`` otherwise.
+
+        The ``retention`` occurs at rotation or at sink stop if rotation is ``None``. Files
+        resulting from previous sessions or rotations are automatically collected from disk. A file
+        is selected if it matches the pattern ``"basename(.*).ext(.*)"`` (possible time fields are
+        beforehand replaced with ``.*``) based on the configured sink. Afterwards, the list is
+        processed to determine files to be retained. This parameter accepts:
+
+        - an |int| which indicates the number of log files to keep, while older files are deleted.
+        - a |timedelta| which specifies the maximum age of files to keep.
+        - a |str| for human-friendly parametrization of the maximum age of files to keep.
+          Examples: ``"1 week, 3 days"``, ``"2 months"``, ...
+        - a |callable|_ which will be invoked before the retention process. It should accept the
+          list of log files as argument and process to whatever it wants (moving files, removing
+          them, etc.).
+
+        The ``compression`` happens at rotation or at sink stop if rotation is ``None``. This
+        parameter accepts:
+
+        - a |str| which corresponds to the compressed or archived file extension. This can be one
+          of: ``"gz"``, ``"bz2"``, ``"xz"``, ``"lzma"``, ``"tar"``, ``"tar.gz"``, ``"tar.bz2"``,
+          ``"tar.xz"``, ``"zip"``.
+        - a |callable|_ which will be invoked before file termination. It should accept the path of
+          the log file as argument and process to whatever it wants (custom compression, network
+          sending, removing it, etc.).
+
+        Either way, if you use a custom function designed according to your preferences
